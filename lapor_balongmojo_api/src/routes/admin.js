@@ -16,6 +16,21 @@ router.put('/verifikasi/:userId', [verifyToken, isPerangkat], async (req, res) =
   }
 });
 
+router.delete('/tolak/:userId', [verifyToken, isPerangkat], async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    await db.execute(
+      'DELETE FROM users WHERE id = ? AND role = "masyarakat" AND is_verified = false',
+      [userId]
+    );
+
+    res.json({ message: 'User berhasil ditolak (dihapus).' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.get('/users-pending', [verifyToken, isPerangkat], async (req, res) => {
   try {
     const [users] = await db.execute(

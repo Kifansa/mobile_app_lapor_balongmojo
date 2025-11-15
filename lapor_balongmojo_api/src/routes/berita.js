@@ -5,12 +5,12 @@ const { verifyToken, isPerangkat } = require('../middleware/auth');
 
 router.post('/', [verifyToken, isPerangkat], async (req, res) => {
   try {
-    const { judul, isi } = req.body;
+    const { judul, isi, gambar_url } = req.body;
     const author_id = req.user.id;
 
     await db.execute(
-      'INSERT INTO berita (author_id, judul, isi) VALUES (?, ?, ?)',
-      [author_id, judul, isi]
+      'INSERT INTO berita (author_id, judul, isi, gambar_url) VALUES (?, ?, ?, ?)',
+      [author_id, judul, isi, gambar_url]
     );
     
     res.status(201).json({ message: 'Berita berhasil dipublikasikan.' });

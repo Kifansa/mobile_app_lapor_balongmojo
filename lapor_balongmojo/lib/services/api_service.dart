@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:lapor_balongmojo/models/laporan_model.dart';
 import 'package:lapor_balongmojo/models/berita_model.dart';
 import 'package:lapor_balongmojo/services/secure_storage_service.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart';
 
 class ApiService {
   // 10.0.2.2 adalah localhost untuk Android Emulator
@@ -66,12 +69,16 @@ class ApiService {
     }
   }
 
-  Future<void> postLaporan(String judul, String deskripsi) async {
+  Future<void> postLaporan(String judul, String deskripsi, String? fotoUrl) async {
     final headers = await _getAuthHeaders();
     final response = await http.post(
       Uri.parse('$_baseUrl/laporan'),
       headers: headers,
-      body: jsonEncode({'judul': judul, 'deskripsi': deskripsi}),
+      body: jsonEncode({
+        'judul': judul,
+        'deskripsi': deskripsi,
+        'foto_url': fotoUrl,
+      }),
     );
 
     if (response.statusCode != 201) {
@@ -104,15 +111,49 @@ class ApiService {
     }
   }
   
-  Future<void> postBerita(String judul, String isi) async {
+  Future<void> postBerita(String judul, String isi, String? gambarUrl) async {
     final headers = await _getAuthHeaders();
     final response = await http.post(
       Uri.parse('$_baseUrl/berita'),
       headers: headers,
-      body: jsonEncode({'judul': judul, 'isi': isi}),
+      body: jsonEncode({
+        'judul': judul, 
+        'isi': isi,
+        'gambar_url': gambarUrl,
+      }),
     );
      if (response.statusCode != 201) {
       throw Exception(jsonDecode(response.body)['message']);
+    }
+  }
+
+  // --- UNTUK UPLOAD GAMBAR ---
+  Future<String> uploadImage(File imageFile) async {
+    final token = await _storageService.readToken();
+    
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$_baseUrl/upload'),
+    );
+    
+    request.headers['Authorization'] = 'Bearer $token';
+
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image',
+        imageFile.path,
+        filename: basename(imageFile.path),
+        contentType: MediaType('image', 'jpeg'),
+      ),
+    );
+
+    var streamedResponse = await request.send();
+    var response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 201) {
+      return jsonDecode(response.body)['imageUrl'];
+    } else {
+      throw Exception('Gagal upload gambar: ${response.body}');
     }
   }
 
@@ -136,6 +177,17 @@ class ApiService {
       headers: headers
     );
      if (response.statusCode != 200) {
+      throw Exception(jsonDecode(response.body)['message']);
+    }
+  }
+
+  Future<void> tolakUser(int userId) async {
+    final headers = await _getAuthHeaders();
+    final response = await http.delete( 
+      Uri.parse('$_baseUrl/admin/tolak/$userId'),
+      headers: headers,
+    );
+    if (response.statusCode != 200) {
       throw Exception(jsonDecode(response.body)['message']);
     }
   }

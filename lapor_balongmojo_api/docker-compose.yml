@@ -25,6 +25,9 @@ services:
       DB_PASSWORD: 'password'
       DB_NAME: 'lapor_balongmojo'
       JWT_SECRET: 'password'
-
+    volumes:
+      - uploads_data:/usr/src/app/public/uploads
+      
 volumes:
   db_data:
+  uploads_data:

@@ -28,7 +28,6 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User berhasil diverifikasi!'))
       );
-      // Refresh list
       setState(() {
         _loadData();
       });
@@ -36,6 +35,21 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal verifikasi: $e'))
       );
+    }
+  }
+
+  Future<void> _tolakUser(int userId) async {
+    try {
+      await _apiService.tolakUser(userId);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User berhasil ditolak!')));
+      // Refresh list
+      setState(() {
+        _loadData();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Gagal menolak: $e')));
     }
   }
 
@@ -65,9 +79,20 @@ class _VerifikasiUserScreenState extends State<VerifikasiUserScreen> {
                 title: Text(user['nama_lengkap']),
                 subtitle: Text(user['email'] + '\n' + user['no_telepon']),
                 isThreeLine: true,
-                trailing: IconButton(
-                  icon: const Icon(Icons.check_circle, color: Colors.green),
-                  onPressed: () => _verifikasiUser(user['id']),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                      tooltip: 'Verifikasi',
+                      onPressed: () => _verifikasiUser(user['id']),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.cancel, color: Colors.red),
+                      tooltip: 'Tolak',
+                      onPressed: () => _tolakUser(user['id']),
+                    ),
+                  ],
                 ),
               ),
             );

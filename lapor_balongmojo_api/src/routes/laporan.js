@@ -5,12 +5,12 @@ const { verifyToken, isPerangkat, isMasyarakat } = require('../middleware/auth')
 
 router.post('/', [verifyToken, isMasyarakat], async (req, res) => {
   try {
-    const { judul, deskripsi } = req.body;
+    const { judul, deskripsi, foto_url } = req.body; 
     const user_id = req.user.id; 
 
     await db.execute(
-      'INSERT INTO laporan (user_id, judul, deskripsi, status) VALUES (?, ?, ?, ?)',
-      [user_id, judul, deskripsi, 'belum terdaftar']
+      'INSERT INTO laporan (user_id, judul, deskripsi, foto_url, status) VALUES (?, ?, ?, ?, ?)',
+      [user_id, judul, deskripsi, foto_url, 'belum terdaftar'] 
     );
 
     res.status(201).json({ message: 'Laporan berhasil dibuat.' });

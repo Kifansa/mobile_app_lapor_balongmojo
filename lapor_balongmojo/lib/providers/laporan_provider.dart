@@ -31,9 +31,10 @@ class LaporanProvider with ChangeNotifier {
   }
 
   // Menambah laporan baru
-  Future<void> addLaporan(String judul, String deskripsi) async {
+  Future<void> addLaporan(String judul, String deskripsi, String? fotoUrl) async {
     try {
-      await _apiService.postLaporan(judul, deskripsi);
+      await _apiService.postLaporan(judul, deskripsi, fotoUrl);
+
       await fetchLaporan();
     } catch (e) {
       rethrow;

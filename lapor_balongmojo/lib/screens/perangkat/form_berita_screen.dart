@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:lapor_balongmojo/services/api_service.dart';
 import 'package:lapor_balongmojo/widgets/custom_textfield.dart';
 import 'package:lapor_balongmojo/widgets/primary_button.dart';
@@ -16,6 +18,42 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
   final _isiController = TextEditingController();
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
+  File? _pickedImage;
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(source: source);
+      if (image == null) return;
+
+      final File imageFile = File(image.path);
+      final int fileSize = await imageFile.length();
+      final double fileSizeInMB = fileSize / (1024 * 1024);
+
+      if (fileSizeInMB > 2.0) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Ukuran File Terlalu Besar'),
+            content: const Text('Ukuran foto tidak boleh melebihi 2 MB.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK'))
+            ],
+          ),
+        );
+        return; 
+      }
+
+      setState(() {
+        _pickedImage = imageFile;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengambil gambar: $e')),
+      );
+    }
+  }
 
   Future<void> _submitBerita() async {
      if (!_formKey.currentState!.validate()) return;
@@ -23,16 +61,28 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
     setState(() { _isLoading = true; });
 
     try {
+      String? uploadedGambarUrl; 
+
+      if (_pickedImage != null) {
+        uploadedGambarUrl = await _apiService.uploadImage(_pickedImage!);
+      }
+
+      if (!mounted) return;
       await _apiService.postBerita(
         _judulController.text,
         _isiController.text,
+        uploadedGambarUrl
       );
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Berita berhasil dipublikasikan!'))
       );
+    
       _judulController.clear();
       _isiController.clear();
+      setState(() {
+        _pickedImage = null;
+      });
 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -71,6 +121,35 @@ class _FormBeritaScreenState extends State<FormBeritaScreen> {
                 maxLines: 10,
                 validator: (val) => val!.isEmpty ? 'Isi wajib diisi' : null,
               ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              height: 200,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: _pickedImage != null
+                  ? Image.file(_pickedImage!, fit: BoxFit.cover)
+                  : const Center(
+                      child: Text('Belum ada gambar cover dipilih'),
+                    ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton.icon(
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Galeri'),
+                  onPressed: () => _pickImage(ImageSource.gallery),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.camera_alt),
+                  label: const Text('Kamera'),
+                  onPressed: () => _pickImage(ImageSource.camera),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             PrimaryButton(
